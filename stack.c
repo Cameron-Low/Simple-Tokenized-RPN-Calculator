@@ -1,51 +1,36 @@
-/* This is a library of basic stack functions like pop, push, etc.*/
-#include <stdio.h>
+/* This is a library for a Token stack.
+It contains useful functions for manipulating a Token stack.
+It also contains the definition of a Token.
+*/
 #include <stdlib.h>
+#include "stack.h"
 
-// A character stack.
-typedef struct {
-    char *bp; // Base pointer (bottom of the stack)
-    char *sp; // Stack pointer (current element)
-    int size; // Size of the stack
-} Stack;
+// Return the token at the top of the stack without changing the stack pointer.
+Token peek(Stack* stack) {
+    Token t = {'\0', 0};
+    if (stack->sp == stack->bp) return t;
+    return *(stack->sp);
+}
 
-
-// Returns the character at the top of the stack and decrements the stack pointer.
-char pop(Stack* stack) {
-    char object = *(stack->sp); // Get the object at the top of the stack
+// Returns the token at the top of the stack and decrements the stack pointer.
+Token pop(Stack* stack) {
+    Token object = *(stack->sp); // Get the token at the top of the stack
 
     if (stack->sp == stack->bp) {
-        printf("Stack is empty!\n");
         stack->sp = stack->bp;
-        return '\0'; // Caller should check for this
+        Token t = {'\0', 0};
+        return t;// Caller should check for this
     }
     (stack->sp)--;
     return object;
 }
 
-// Add element to the stack.
-void push(Stack* stack, char object) {
+// Add token to the stack.
+void push(Stack* stack, Token object) {
     (stack->sp)++;
     if (stack->sp > (stack->bp + stack->size)) {
         (stack->sp)--;
-        printf("Stack is full!\n");
         return;
     }
     *(stack->sp) = object;
-}
-
-int main() {
-    Stack s;
-    s.size = 1;
-    s.bp = malloc(sizeof(char)*s.size);
-    s.sp = s.bp;
-    printf("%p\n", (s.bp));
-    push(&s, 'C');
-    push(&s, 'D');
-    char c = pop(&s);
-    printf("The stack had a %c\n", c);
-    c = pop(&s);
-    printf("The stack had a %c\n", c);
-    c = pop(&s);
-    free(s.bp);
 }
