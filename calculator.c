@@ -59,7 +59,7 @@ void convert(char expr[], char result[]) {
     s.sp = s.bp;
 
     // Setup output array.
-    Token infixExpr[strlen(expr)];
+    Token infixExpr[strlen(expr)+1];
     int headPointer = 0;
 
     // Loop through each character.
@@ -110,6 +110,7 @@ void convert(char expr[], char result[]) {
         }
         result[i] = infixExpr[i].name;
     }
+    free(s.bp);
 }
 
 // Evaluates a postfix expression.
@@ -149,6 +150,7 @@ double evaluate(char expr[]) {
 
     // Return the value of the expression.
     double result = pop(&s).value;
+    free(s.bp);
     return result;
 }
 
@@ -173,16 +175,25 @@ void testEvaluate() {
     assert(evaluate("222+/23-2+*3+2-") == 1.5);
 }
 
-// Run with ./RPN "{expr}" for a custom expression.
-int main(int argc, char **args) {
-    if (argc == 2) {
-        char result[strlen(args[1])];
+// Run all tests.
+void test() {
+    testConvert();
+    testEvaluate();
+    printf("All tests passed!\n");
+}
+
+// Run with ./RPN "{expr}" for a custom expression. No arguments will test.
+int main(int argc, char *args[argc]) {
+    setbuf(stdout, NULL);
+    if (argc == 1) {
+        test();
+    } else if (argc == 2) {
+        char result[strlen(args[1])+1];
         convert(args[1], result);
         printf("%f\n", evaluate(result));
     } else {
-        testConvert();
-        testEvaluate();
-        printf("All tests passed!\n");
+        fprintf(stderr, "Use e.g.: ./calc expression\n");
+        exit(1);
     }
     return 0;
 }
