@@ -1,10 +1,5 @@
 /*Header file for stack.c*/
-
-// A token
-typedef struct {
-    char name;
-    double value;
-} Token;
+#include "lexer.h"
 
 // A token stack.
 typedef struct {
@@ -13,9 +8,7 @@ typedef struct {
     int size; // Size of the stack
 } Stack;
 
+// Public function signatures.
 Token peek(Stack* stack);
-
 Token pop(Stack* stack);
-
 void push(Stack* stack, Token object);
-

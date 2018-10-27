@@ -1,8 +1,8 @@
-/* This is a library for a Token stack.
+/* 
+This is a library for a Token stack.
 It contains useful functions for manipulating a Token stack.
 It also contains the definition of a Token.
 */
-#include <stdlib.h>
 #include "stack.h"
 
 // Return the token at the top of the stack without changing the stack pointer.

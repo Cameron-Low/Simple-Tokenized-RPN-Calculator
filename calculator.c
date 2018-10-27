@@ -5,85 +5,51 @@ Uses RPN evaluation algorithm to evaluate the expression.
 Shunting Yard Algorithm - https://en.wikipedia.org/wiki/Shunting-yard_algorithm
 Reverse Polish Notation Algorithm - https://en.wikipedia.org/wiki/Reverse_Polish_notation
 */
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <assert.h>
-#include <stdbool.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "stack.h"
 
-// Checks if the given character is in the given array.
-bool inArray(char c, int arrLen, char arr[]) {
-    for (int i = 0; i < arrLen; i++) {
-        if (c == arr[i]) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Checks if the given character is an operator.
-bool isOperator(char c) {
-    char operators[] = {'+', '-', '*', '/'};
-    int opCount = 4;
-    return inArray(c, opCount, operators);
-}
-
-// Finds the precedence of the given operator.
-int getPrecendence(char op) {
-    char opPrecedence[2][2] = {{'+', '-'},{'*','/'}};
-    int lenPrecedences = 2;
-    for (int i = 0; i < lenPrecedences; i++) {
-        if (inArray(op, 2, opPrecedence[i])) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-// Returns true if x has a lower or equal precedence.
-bool comparePrecedence(char x, char y) {
-    int xPrec = getPrecendence(x);
-    int yPrec = getPrecendence(y);
-    return xPrec <= yPrec;
-}
+// Private function signatures.
+int getPrecendence(char op);
+int comparePrecedence(char x, char y);
+int convert(Token expr[], Token result[]);
+double evaluate(Token expr[]);
+void testConvert();
+void testEvaluate();
+void test();
 
 // Converts an expression from infix to postfix using the Shunting yard algorithm.
 // The ouput string is stored in the result string that was passed in.
-void convert(char expr[], char result[]) {
+int convert(Token expr[], Token result[]) {
     // Setup operator stack.
     Stack s;
-    s.size = strlen(expr);
+    s.size = tokLength(expr);
     s.bp = malloc(s.size * sizeof(Token));
     s.sp = s.bp;
 
     // Setup output array.
-    Token infixExpr[strlen(expr)+1];
+    Token infixExpr[tokLength(expr)+1];
     int headPointer = 0;
 
     // Loop through each character.
-    for (int i = 0; i < strlen(expr); i++) {
-        if (isdigit(expr[i])) {
-            // Create a number token and append it to the array.
-            Token tok = {expr[i], (double) (expr[i]-'0')};
-            infixExpr[headPointer++] = tok;
-        } else if (isOperator(expr[i])){
+    for (int i = 0; i < tokLength(expr); i++) {
+        if (expr[i].name == 'n') {
+            infixExpr[headPointer++] = expr[i];
+        } else if (isOperator(expr[i].name)){
             // Pop all operators on the stack that are of greater or equal precedence.
             Token topOfStack = peek(&s);
-            while ((topOfStack.name != '\0') && (topOfStack.name != '(') && comparePrecedence(expr[i], topOfStack.name)) {
+            while ((topOfStack.name != '\0') && (topOfStack.name != '(') && ((comparePrecedence(expr[i].name, topOfStack.name) == 0 && topOfStack.name != '^') || comparePrecedence(expr[i].name, topOfStack.name) < 0)) {
                 infixExpr[headPointer++] = pop(&s);
                 topOfStack = peek(&s);
             }
 
-            // Push operator to stack.
-            Token tok = {expr[i], 0};
-            push(&s, tok);
-        } else if (expr[i] == '(') {
-            // Push to stack to mark end of bracketed expression.
-            Token tok = {'(', 0};
-            push(&s, tok);
-        } else if (expr[i] == ')') {
+            push(&s, expr[i]);
+        } else if (expr[i].name == '(') {
+            push(&s, expr[i]);
+        } else if (expr[i].name == ')') {
             // Pop all operators until the leading brace.
             Token topOfStack = peek(&s);
             while (topOfStack.name != '(') {
@@ -94,8 +60,8 @@ void convert(char expr[], char result[]) {
             pop(&s);
         } else {
             // Quit if invalid character.
-            printf("%c is not a valid character!\n", expr[i]);
-            return;
+            printf("%c is not a valid character!\n", expr[i].name);
+            return -1;
         }
     }
 
@@ -104,47 +70,41 @@ void convert(char expr[], char result[]) {
     
     // Copy the names of the tokens to the result string.
     for (int i = 0; i < headPointer; i++) {
-        if (infixExpr[i].name == '\0') {
-            result[i] = '\0';
-            break;
-        }
-        result[i] = infixExpr[i].name;
+        result[i] = infixExpr[i];
     }
     free(s.bp);
+    return 0;
 }
 
 // Evaluates a postfix expression.
-double evaluate(char expr[]) {
+double evaluate(Token expr[]) {
     // Stack setup.
     Stack s;
-    s.size = strlen(expr);
+    s.size = tokLength(expr);
     s.bp = malloc(s.size * sizeof(Token));
     s.sp = s.bp;
 
     // Loop through expression.
-    for (int i = 0; i < strlen(expr); i++) {
+    for (int i = 0; i < tokLength(expr); i++) {
         // Evaluate the operation
-        if (isOperator(expr[i])) {
+        if (isOperator(expr[i].name)) {
             double op2 = pop(&s).value;
             double op1 = pop(&s).value;
 
-            Token tok;
-            tok.name = 'r';
-            switch (expr[i]) {
+            Token tok = {'n', 0};
+            switch (expr[i].name) {
                 case '+': tok.value = op1 + op2; break;
                 case '-': tok.value = op1 - op2; break;
                 case '*': tok.value = op1 * op2; break;
                 case '/': tok.value = op1 / op2; break;
+                case '^': tok.value = pow(op1, op2); break;
             }
 
             // Push the resulting value back to the stack.
             push(&s,tok);
         } else {
             // Push the value onto the stack.
-            Token tok;
-            tok.name = expr[i];
-            tok.value = (double) (expr[i]-'0');
-            push(&s, tok);
+            push(&s, expr[i]);
         }
     }
 
@@ -154,42 +114,73 @@ double evaluate(char expr[]) {
     return result;
 }
 
+// _______________________________
+//           Helpers
+// _______________________________
+
+// Finds the precedence of the given operator.
+int getPrecendence(char op) {
+    char opPrecedence[3][2] = {{'+', '-'},{'*','/'},{'^','^'}};
+    int lenPrecedences = 3;
+    for (int i = 0; i < lenPrecedences; i++) {
+        if (inArray(op, 2, opPrecedence[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Returns true if x has a lower or equal precedence.
+int comparePrecedence(char x, char y) {
+    int xPrec = getPrecendence(x);
+    int yPrec = getPrecendence(y);
+    return xPrec - yPrec;
+}
+
+// _______________________________
+//           Testing
+// _______________________________
+
 // Testing the convert function.
 void testConvert() {
-    char result[25];
-    convert("2+2", result);
-    assert(!strcmp(result,"22+"));
-    convert("2+2-3+3-2", result);
-    assert(!strcmp(result,"22+3-3+2-"));
-    convert("2+2*4/8-2", result);
-    assert(!strcmp(result, "224*8/+2-"));
-    convert("2/(2+2)*(2-3+2)+3-2", result);
-    assert(!strcmp(result, "222+/23-2+*3+2-"));
+    Token toks[30];
+    lex(toks, "3+3*(3-1)");
+    convert(toks, toks);
+
+    Token check[] = {createToken('n', 3), createToken('n', 3), createToken('n', 3), createToken('n', 1),
+                    createToken('-', 0), createToken('*', 0), createToken('+', 0)};
+    assert(tokensMatch(toks, check));
 }
 
 // Testing the evaluate function.
 void testEvaluate() {
-    assert(evaluate("22+4+2+3+") == 13);
-    assert(evaluate("22+3-3+2-") == 2);
-    assert(evaluate("224*8/+2-") == 1);
-    assert(evaluate("222+/23-2+*3+2-") == 1.5);
+    Token check[] = {createToken('n', 3), createToken('n', 3), createToken('n', 3), createToken('n', 1),
+                    createToken('-', 0), createToken('*', 0), createToken('+', 0), createToken('\0', 0)};
+    assert(evaluate(check) == 9);
 }
 
 // Run all tests.
 void test() {
+    testNumberHandling();
+    testLexer();
     testConvert();
     testEvaluate();
     printf("All tests passed!\n");
 }
 
-// Run with ./RPN "{expr}" for a custom expression. No arguments will test.
+// _______________________________
+//           Running
+// _______________________________
+
+// Run with ./calc "{expr}" for a custom expression. No arguments will test.
 int main(int argc, char *args[argc]) {
     setbuf(stdout, NULL);
     if (argc == 1) {
         test();
     } else if (argc == 2) {
-        char result[strlen(args[1])+1];
-        convert(args[1], result);
+        Token result[strlen(args[1])+1];
+        if (lex(result, args[1])) return 1;
+        if (convert(result, result)) return 1;
         printf("%f\n", evaluate(result));
     } else {
         fprintf(stderr, "Use e.g.: ./calc expression\n");
